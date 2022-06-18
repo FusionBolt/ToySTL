@@ -10,13 +10,13 @@
 #include<utility>
 #include<cstddef>
 #include<iostream>
+#include<limits>
 namespace sp 
 {
 	// ��û�б��з�����ʵ����ʹ���˷������ľ�̬����
 	template<typename Ty, typename Alloc = allocator<Ty>>
 	class vector {
 	public:
-		friend void swap(vector<Ty, Alloc> &lhs, vector<Ty, Alloc> &rhs);
 		using value_type = Ty;
 		using allcator_type = Alloc;
 		using size_type = std::size_t;
@@ -268,9 +268,9 @@ namespace sp
 		{
 			_alloc_and_fill();
 		}
-		explicit vector(size_type count)
+		explicit vector(size_type count,const Ty& value = Ty())
 		{
-			_alloc_and_fill(count, Ty());
+			_alloc_and_fill(count, value);
 		}
 		template<typename InputIterator>
 		vector(InputIterator first, InputIterator last):begin_(alloc::allocate(last - first))
@@ -279,40 +279,23 @@ namespace sp
 			last_ = end_ = newEnd;
 		}
 
-		vector(const vector& other) :vector(other.begin(), other.end()) {}
-		//vector(const vector& other) :vector(other.begin(), other.end()) {}
 		vector(vector&& other)
 		{
+			// init member, prevent free garbage address in other.
+			_alloc_and_fill();
 			swap(other);
 		}
+		vector(const vector& other)	:vector(other.begin(),other.end()) {}
 
-
-		//vector& operator=(vector other)
-		//{
-		//	swap(other);
-		//	return *this;
-		//}
-		vector& operator=(const vector& other)
-		{
-			auto v = other;
-			swap(v);
-			return *this;
-		}
-		vector& operator=(vector&& other)
-		{
-			swap(other);
-			return *this;
-		}
-
+		// we have operator = (init_list) by implict cast.
 		vector(std::initializer_list<Ty> list) :vector(list.begin(), list.end()) {}
 
-		vector&operator=(std::initializer_list<Ty> list)
+		// These is always need a copy, so pass it by value.
+		vector& operator=(vector other)
 		{
-			vector v(list.begin(), list.end());
-			swap(v);
+			swap(other);
 			return *this;
 		}
-
 
 		~vector()
 		{
@@ -566,15 +549,9 @@ namespace sp
 	};
 
 	template <typename Ty, typename Alloc>
-	inline void swap(vector<Ty, Alloc> &lhs, vector<Ty, Alloc> &rhs) noexcept(
-		std::is_nothrow_move_constructible<Ty>::value &&
-		std::is_nothrow_move_assignable<Ty>::value
-		)
+	inline void swap(vector<Ty, Alloc> &lhs, vector<Ty, Alloc> &rhs) noexcept // We not move Ty actually.
 	{
-		using std::swap;
-		swap(lhs.begin_.p_, rhs.begin_.p_);
-		swap(lhs.end_.p_, rhs.end_.p_);
-		swap(lhs.last_.p_, rhs.last_.p_);
+		lhs.swap(rhs);
 	}
 
 
